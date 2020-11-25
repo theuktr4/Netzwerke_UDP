@@ -1,3 +1,4 @@
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,53 +12,48 @@ public class Client {
     private int port = 4711;
     private String ip = "localhost";
 
-    public Client(String prot, int n, long k, long duration){
-        this.n=n;
+    public Client(String prot, int n, long k, long duration) {
+        this.n = n;
         this.k = k;
         this.duration = duration;
-        if(prot=="UDP"){
+        if (prot == "UDP") {
             sendUDP();
-        }
-        else if(prot=="TCP"){
+        } else if (prot == "TCP") {
             sendTCP();
         }
     }
-    private void sendUDP(){
-        long count =0;
-        long start =System.currentTimeMillis();
-        while(System.currentTimeMillis()<start+this.duration*1000){
-            try(DatagramSocket socket = new DatagramSocket()){
-                if(count !=0 && count%this.n ==0){
-                    Thread.currentThread().sleep(this.k);
+
+    private void sendUDP() {
+        long count = 0;
+        long start = System.currentTimeMillis();
+        try (DatagramSocket socket = new DatagramSocket()) {
+            while (System.currentTimeMillis() < start + this.duration * 1000) {
+                if (count != 0 && count % this.n == 0) {
+                    Thread.sleep(this.k);
                 }
-                DatagramPacket p = new DatagramPacket(new byte[SIZE],SIZE, InetAddress.getByName(this.ip),this.port);
+                DatagramPacket p = new DatagramPacket(new byte[SIZE], SIZE, InetAddress.getByName(this.ip), this.port);
                 socket.send(p);
                 //System.out.println("Package sent");
                 count++;
-
-            } catch (SocketException e) {
-                e.printStackTrace();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
+
+        } catch (InterruptedException | IOException e) {
+            e.printStackTrace();
         }
-        printDataRate(count*SIZE);
+        printDataRate(count * SIZE);
     }
 
-    private void sendTCP(){
-        long count =0;
-        long start =System.currentTimeMillis();;
-        try(Socket s = new Socket(this.ip,this.port)){
+    private void sendTCP() {
+        long count = 0;
+        long start = System.currentTimeMillis();
+        try (Socket s = new Socket(this.ip, this.port)) {
             OutputStream out = s.getOutputStream();
-            while(System.currentTimeMillis()<start+this.duration*1000){
-                if(count !=0 && count%this.n ==0){
+            while (System.currentTimeMillis() < start + this.duration * 1000) {
+                if (count != 0 && count % this.n == 0) {
                     Thread.currentThread().sleep(this.k);
                 }
                 out.write(new byte[SIZE]);
+                out.flush();
                 count++;
             }
             out.close();
@@ -66,20 +62,24 @@ public class Client {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        printDataRate(count*SIZE);
+        printDataRate(count * SIZE);
     }
 
-    private void printDataRate(long dataInBytes){
-        double rate = (dataInBytes*8.0)/(this.duration)/1000.0;
-        System.out.printf("Senderate: %3f kbit/s%n",rate);
+    private void printDataRate(long dataInBytes) {
+        double rate = (dataInBytes * 8.0) / (this.duration) / 1000.0;
+        System.out.printf("%3f kbit/s%n", rate);
     }
 
     public static void main(String[] args) {
-        for(int i=0;i<100;i=i+5){
-            new Client("TCP",20,100-i,20);
+        System.out.println("TCP");
+        for (int i = 0; i < 20; i++) {
+            new Client("TCP", 50, i, 20);
+        }
+        System.out.println("UDP");
+        for (int i = 0; i < 20; i++) {
+            new Client("UDP", 50, i, 20);
             try {
-                Thread.currentThread().sleep(15000);
+                Thread.sleep(15000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
